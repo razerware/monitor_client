@@ -10,8 +10,7 @@ import (
 func main(){
 	c := make(chan os.Signal)
 	signal.Notify(c)
-	client:=client.ConnServer("127.0.0.1:4200")
-	client.CallRemoteFunc()
+	go client.ConnServer("127.0.0.1:4200",c)
 	for {
 		select {
 		case <-c:

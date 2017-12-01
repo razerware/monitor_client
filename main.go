@@ -7,14 +7,15 @@ import (
 	"rpc_client/client"
 )
 
-func main(){
+func main() {
 	c := make(chan os.Signal)
 	signal.Notify(c)
-	go client.ConnServer("127.0.0.1:4200",c)
+	client.CollectData()
+	//go client.ConnServer("127.0.0.1:4200",c)
 	for {
 		select {
 		case <-c:
-			fmt.Println("get signal:",c)
+			fmt.Println("get signal:", c)
 			os.Exit(1)
 		}
 	}

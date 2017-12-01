@@ -9,6 +9,7 @@ import (
 	"os"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
+	"github.com/shirou/gopsutil/docker"
 )
 
 type MonitorStats struct {
@@ -55,5 +56,12 @@ func CollectData() MonitorStats {
 	result := MonitorStats{0,"127.0.0.1",c[0],v.UsedPercent}
 	// convert to JSON. String() is also implemented
 	fmt.Println(result)
+	d_ids,_:=docker.GetDockerIDList()
+	for _,d_id:=range d_ids{
+		d_cpu,_:=docker.CgroupCPUDocker(d_id)
+		d_mem,_:=docker.CgroupMemDocker(d_id)
+		fmt.Println(d_cpu)
+		fmt.Println(d_mem)
+	}
 	return result
 }

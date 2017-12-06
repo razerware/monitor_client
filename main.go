@@ -16,13 +16,7 @@ func main() {
 	hostip:=flag.String("hostip", "", "string")
 	info:=client.HostInfo{*hostid,*hostip}
 	for {
-		select {
-		case <-c:
-			fmt.Println("get signal:", c)
-			os.Exit(1)
-		default:
-			client.CollectData(info)
-			time.Sleep(10*time.Second)
-		}
+		client.CollectData(info)
+		time.Sleep(10*time.Second)
 	}
 }

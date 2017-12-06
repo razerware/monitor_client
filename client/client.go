@@ -77,9 +77,10 @@ func CollectVm(info HostInfo)  {
 	// convert to JSON. String() is also implemented
 	sendVmInfo("vm",result)
 }
-func getContainers() []Container {
+func getContainers(info HostInfo) []Container {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", "http://10.109.252.172:2375/containers/json", nil)
+	url:="http://"+info.Hostip+":2375/containers/json"
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		// handle error
 	}
@@ -94,7 +95,7 @@ func getContainers() []Container {
 	return c
 }
 func CollectContainer(info HostInfo) {
-	c := getContainers()
+	c := getContainers(info)
 	for _, i := range c {
 		if i.Labels.ComDockerSwarmServiceID == "" {
 			continue

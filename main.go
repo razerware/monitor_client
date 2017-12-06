@@ -6,12 +6,15 @@ import (
 	"os/signal"
 	"rpc_client/client"
 	"time"
+	"flag"
 )
 
 func main() {
 	c := make(chan os.Signal)
 	signal.Notify(c)
-	info:=client.HostInfo{1,"10.109.252.172"}
+	hostid:=flag.Int("hostid", 0, "number")
+	hostip:=flag.String("hostip", "", "string")
+	info:=client.HostInfo{*hostid,*hostip}
 	for {
 		select {
 		case <-c:

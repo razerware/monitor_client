@@ -100,9 +100,9 @@ func CollectContainer(info HostInfo) {
 		if i.Labels.ComDockerSwarmServiceID == "" {
 			continue
 		} else {
-			go func(i Container) {
+			go func(i Container,info HostInfo) {
 				client := &http.Client{}
-				url := "http://10.109.252.172:2375/containers/" + i.ID + "/stats?stream=false"
+				url := "http://"+info.Hostip+":2375/containers/" + i.ID + "/stats?stream=false"
 				fmt.Println(url)
 				req, err := http.NewRequest("GET", url, nil)
 				if err != nil {
@@ -129,7 +129,7 @@ func CollectContainer(info HostInfo) {
 				sendContainerInfo("container", ms)
 				fmt.Println(ms)
 
-			}(i)
+			}(i,info)
 
 		}
 

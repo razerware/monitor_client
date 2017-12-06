@@ -19,8 +19,11 @@ func main() {
 	fmt.Println(info)
 	t:=make(chan int)
 	go func(t chan int ) {
-		t<-1
-		time.Sleep(10*time.Second)
+		for{
+			t<-1
+			time.Sleep(10*time.Second)
+		}
+
 	}(t)
 	for {
 		select {

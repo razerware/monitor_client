@@ -17,14 +17,17 @@ func main() {
 	flag.Parse()
 	info := client.HostInfo{*hostid, *hostip}
 	fmt.Println(info)
+	t:=make(chan int)
+	go func(t chan int ) {
+		t<-1
+		time.Sleep(10*time.Second)
+	}(t)
 	for {
 		select {
 		case <-c:
 			os.Exit(1)
-		default:
+		case <-t:
 			client.CollectData(info)
-			time.Sleep(10 * time.Second)
 		}
-
 	}
 }

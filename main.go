@@ -10,8 +10,8 @@ import (
 func main() {
 	c := make(chan os.Signal)
 	signal.Notify(c)
-	client.CollectData()
-	//go client.ConnServer("127.0.0.1:4200",c)
+	info:=client.HostInfo{1,"10.109.252.172"}
+	client.CollectData(info)
 	for {
 		select {
 		case <-c:

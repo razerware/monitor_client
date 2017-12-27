@@ -13,7 +13,9 @@ import (
 )
 
 var dbUrl = "http://10.109.252.172:8086"
-var db = "test"
+var db = "lzy"
+var db_user="admin"
+var db_user_password="admin"
 
 type HostInfo struct {
 	Hostid int
@@ -23,17 +25,16 @@ type containerMonitorStats struct {
 	HostInfo
 	CpuPercent  float64
 	MemPercent  float64
-	Name string
-	serviceId string
-	serviceName   string
+	Name        string
+	serviceId   string
+	serviceName string
 }
 type vmMonitorStats struct {
 	HostInfo
-	CpuPercent  float64
-	MemPercent  float64
-	swarmId int
+	CpuPercent float64
+	MemPercent float64
+	swarmId    int
 }
-
 
 type ContainerStats struct {
 	CPUStats struct {
@@ -68,18 +69,18 @@ func CollectData(info HostInfo) {
 	CollectContainer(info)
 }
 
-func CollectVm(info HostInfo)  {
+func CollectVm(info HostInfo) {
 	v, _ := mem.VirtualMemory()
 	c, _ := cpu.Percent(0, false)
 	// almost every return value is a struct
 	fmt.Printf("Total: %v, Free:%v, UsedPercent:%f%%\n", v.Total/1024/1024/1024, v.Free, v.UsedPercent)
 	result := vmMonitorStats{info, c[0], v.UsedPercent, 1}
 	// convert to JSON. String() is also implemented
-	sendVmInfo("vm",result)
+	sendVmInfo("vm", result)
 }
 func getContainers(info HostInfo) []Container {
 	client := &http.Client{}
-	url:="http://"+info.Hostip+":2375/containers/json"
+	url := "http://" + info.Hostip + ":2375/containers/json"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		// handle error
@@ -100,9 +101,9 @@ func CollectContainer(info HostInfo) {
 		if i.Labels.ComDockerSwarmServiceID == "" {
 			continue
 		} else {
-			go func(i Container,info HostInfo) {
+			go func(i Container, info HostInfo) {
 				client := &http.Client{}
-				url := "http://"+info.Hostip+":2375/containers/" + i.ID + "/stats?stream=false"
+				url := "http://" + info.Hostip + ":2375/containers/" + i.ID + "/stats?stream=false"
 				fmt.Println(url)
 				req, err := http.NewRequest("GET", url, nil)
 				if err != nil {
@@ -125,11 +126,11 @@ func CollectContainer(info HostInfo) {
 				service_id := i.Labels.ComDockerSwarmServiceID
 				service_name := i.Labels.ComDockerSwarmServiceName
 				ms := containerMonitorStats{info, cpu_percent, mem_percent, i.Names[0],
-				service_id, service_name}
+					service_id, service_name}
 				sendContainerInfo("container", ms)
 				fmt.Println(ms)
 
-			}(i,info)
+			}(i, info)
 
 		}
 
@@ -137,9 +138,9 @@ func CollectContainer(info HostInfo) {
 	return
 }
 func sendContainerInfo(field string, stat containerMonitorStats) {
-	url := dbUrl + "/write?db=" + db
+	url := dbUrl + "/write?db=" + db + "&u=" + db_user + "&p=" + db_user_password
 	tags := "hostid=" + strconv.Itoa(stat.Hostid) + ",serviceid=" + stat.serviceId + ",servicename=" +
-		stat.serviceName + ",name="+stat.Name
+		stat.serviceName + ",name=" + stat.Name
 	stat_string := field + "," + tags + " cpu=" + strconv.FormatFloat(stat.CpuPercent, 'f', 2, 64) +
 		",mem=" + strconv.FormatFloat(stat.MemPercent, 'f', 2, 64)
 	stat_byte := []byte(stat_string)

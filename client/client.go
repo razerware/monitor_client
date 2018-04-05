@@ -1,7 +1,6 @@
 package client
 
 import (
-	"log"
 	"fmt"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
@@ -126,7 +125,7 @@ func CollectContainer(info HostInfo) {
 				if ok != nil {
 					glog.Error(ok)
 				} else {
-					glog.V(1).Info("Container stat: ",string(json_cs))
+					glog.V(1).Info("Container stat: ", string(json_cs))
 				}
 
 				cpu_percent := float64((cs.CPUStats.CPUUsage.TotalUsage -
@@ -142,7 +141,7 @@ func CollectContainer(info HostInfo) {
 				if ok != nil {
 					glog.Error(ok)
 				} else {
-					glog.V(1).Info("Monitor stat: ",string(json_ms))
+					glog.V(1).Info("Monitor stat: ", string(json_ms))
 				}
 
 			}(i, info)
@@ -161,7 +160,7 @@ func sendContainerInfo(field string, stat containerMonitorStats) {
 	stat_string := field + "," + tags + " cpu=" + strconv.FormatFloat(stat.CpuPercent, 'f', 2, 64) +
 		",mem=" + strconv.FormatFloat(stat.MemPercent, 'f', 2, 64)
 	stat_byte := []byte(stat_string)
-	glog.V(1).Info("Container info is:",stat_string)
+	glog.V(1).Info("Container info is:", stat_string)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(stat_byte))
 	if err != nil {
 		// handle error
@@ -173,7 +172,7 @@ func sendContainerInfo(field string, stat containerMonitorStats) {
 		// handle error
 		glog.Error(err)
 	} else {
-		glog.Info("Container info send successed ",resp.StatusCode)
+		glog.Info("Container info send successed ", resp.StatusCode)
 	}
 
 }
@@ -184,7 +183,7 @@ func sendVmInfo(field string, stat vmMonitorStats) {
 	stat_string := field + "," + tags + " cpu=" + strconv.FormatFloat(stat.CpuPercent, 'f', 2, 64) +
 		",mem=" + strconv.FormatFloat(stat.MemPercent, 'f', 2, 64)
 	stat_byte := []byte(stat_string)
-	glog.V(1).Info("VM info is:",stat_string)
+	glog.V(1).Info("VM info is:", stat_string)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(stat_byte))
 	if err != nil {
 		// handle error
@@ -195,7 +194,7 @@ func sendVmInfo(field string, stat vmMonitorStats) {
 	if err != nil {
 		// handle error
 		glog.Error(err)
-	}else {
-		glog.Info("Vm info send successed ",resp.StatusCode)
+	} else {
+		glog.Info("Vm info send successed ", resp.StatusCode)
 	}
 }

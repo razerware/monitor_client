@@ -171,18 +171,11 @@ func sendContainerInfo(field string, stat containerMonitorStats) {
 	resp, err := client.Do(req)
 	if err != nil {
 		// handle error
-		log.Println(err)
-	} else {
-
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		// handle error
 		glog.Error(err)
 	} else {
-		glog.V(1).Info("resp body is :",string(body))
+		glog.Info("Container info send successed ",resp.StatusCode)
 	}
+
 }
 func sendVmInfo(field string, stat vmMonitorStats) {
 	glog.V(1).Info("sendVmInfo...")
@@ -202,13 +195,7 @@ func sendVmInfo(field string, stat vmMonitorStats) {
 	if err != nil {
 		// handle error
 		glog.Error(err)
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		// handle error
-		glog.Error(err)
-	} else {
-		glog.V(1).Info("resp body is :",string(body))
+	}else {
+		glog.Info("Vm info send successed ",resp.StatusCode)
 	}
 }

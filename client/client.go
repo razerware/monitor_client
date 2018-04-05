@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"encoding/json"
+	"github.com/golang/glog"
 )
 
 var dbUrl = "http://10.109.252.172:8086"
@@ -20,6 +21,7 @@ var db_user_password="admin"
 type HostInfo struct {
 	Hostid int
 	Hostip string
+	SwarmID string
 }
 type containerMonitorStats struct {
 	HostInfo
@@ -73,7 +75,7 @@ func CollectVm(info HostInfo) {
 	v, _ := mem.VirtualMemory()
 	c, _ := cpu.Percent(0, false)
 	// almost every return value is a struct
-	fmt.Printf("Total: %v, Free:%v, UsedPercent:%f%%\n", v.Total/1024/1024/1024, v.Free, v.UsedPercent)
+	glog.Info("Total: %v, Free:%v, UsedPercent:%f%%\n", v.Total/1024/1024/1024, v.Free, v.UsedPercent)
 	result := vmMonitorStats{info, c[0], v.UsedPercent, 1}
 	// convert to JSON. String() is also implemented
 	sendVmInfo("vm", result)
@@ -90,6 +92,7 @@ func getContainers(info HostInfo) []Container {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		// handle error
+		glog.Error("error occur when GET containers")
 	}
 	c := []Container{}
 	json.Unmarshal(body, &c)
@@ -104,7 +107,7 @@ func CollectContainer(info HostInfo) {
 			go func(i Container, info HostInfo) {
 				client := &http.Client{}
 				url := "http://" + info.Hostip + ":2375/containers/" + i.ID + "/stats?stream=false"
-				fmt.Println(url)
+				glog.V(1).Info("CollectContainer url is %s",url)
 				req, err := http.NewRequest("GET", url, nil)
 				if err != nil {
 					// handle error
@@ -114,10 +117,17 @@ func CollectContainer(info HostInfo) {
 				body, err := ioutil.ReadAll(resp.Body)
 				if err != nil {
 					// handle error
+					glog.Error(err)
 				}
 				cs := ContainerStats{}
 				json.Unmarshal(body, &cs)
-				fmt.Println(cs)
+				json_cs,ok:=json.Marshal(cs)
+				if ok!=nil{
+					glog.Error(ok)
+				}else{
+					glog.V(1).Info(string(json_cs))
+				}
+
 
 				cpu_percent := float64((cs.CPUStats.CPUUsage.TotalUsage -
 					cs.PrecpuStats.CPUUsage.TotalUsage)) /
@@ -128,7 +138,12 @@ func CollectContainer(info HostInfo) {
 				ms := containerMonitorStats{info, cpu_percent, mem_percent, i.Names[0],
 					service_id, service_name}
 				sendContainerInfo("container", ms)
-				fmt.Println(ms)
+				json_ms,ok:=json.Marshal(ms)
+				if ok!=nil{
+					glog.Error(ok)
+				}else{
+					glog.V(1).Info(string(json_ms))
+				}
 
 			}(i, info)
 
@@ -137,34 +152,40 @@ func CollectContainer(info HostInfo) {
 	}
 	return
 }
+
 func sendContainerInfo(field string, stat containerMonitorStats) {
+	glog.V(1).Info("sendContainerInfo...")
 	url := dbUrl + "/write?db=" + db + "&u=" + db_user + "&p=" + db_user_password
 	tags := "hostid=" + strconv.Itoa(stat.Hostid) + ",serviceid=" + stat.serviceId + ",servicename=" +
 		stat.serviceName + ",name=" + stat.Name
 	stat_string := field + "," + tags + " cpu=" + strconv.FormatFloat(stat.CpuPercent, 'f', 2, 64) +
 		",mem=" + strconv.FormatFloat(stat.MemPercent, 'f', 2, 64)
 	stat_byte := []byte(stat_string)
-	fmt.Println(stat_string)
+	glog.V(1).Info(stat_string)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(stat_byte))
 	if err != nil {
 		// handle error
+		glog.Error(err)
 	}
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		// handle error
-	} else {
 		log.Println(err)
+	} else {
+
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		// handle error
+		glog.Error(err)
 	} else {
-		log.Println(string(body))
+		glog.V(1).Info(string(body))
 	}
 }
 func sendVmInfo(field string, stat vmMonitorStats) {
+	glog.V(1).Info("sendVmInfo...")
 	url := dbUrl + "/write?db=" + db
 	tags := "hostid=" + strconv.Itoa(stat.Hostid) + ",swarmid=" + strconv.Itoa(stat.swarmId)
 	stat_string := field + "," + tags + " cpu=" + strconv.FormatFloat(stat.CpuPercent, 'f', 2, 64) +
@@ -174,19 +195,20 @@ func sendVmInfo(field string, stat vmMonitorStats) {
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(stat_byte))
 	if err != nil {
 		// handle error
+		glog.Error(err)
 	}
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		// handle error
-	} else {
-		log.Println(err)
+		glog.Error(err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		// handle error
+		glog.Error(err)
 	} else {
-		log.Println(string(body))
+		glog.V(1).Info(string(body))
 	}
 }

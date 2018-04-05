@@ -24,7 +24,6 @@ func main() {
 		for {
 			t <- 1
 			duration := 10 * time.Second
-			glog.Info("Time wait for sleeping")
 			time.Sleep(duration)
 		}
 
@@ -36,6 +35,7 @@ func main() {
 		case <-t:
 			glog.Info("Collecting data...")
 			client.CollectData(info)
+			glog.Info("Time wait for sleeping")
 		}
 	}
 }

@@ -18,14 +18,14 @@ func main() {
 	flag.Parse()
 	glog.Flush()
 	info := client.HostInfo{*hostid, *hostip, *swarmid}
-	glog.Info("Data collecting start ,%v", info)
+	glog.Info("Data collecting start...", info)
 	t := make(chan int)
 	go func(t chan int) {
 		for {
 			t <- 1
 			duration := 10 * time.Second
-			time.Sleep(duration)
 			glog.Info("Time wait for sleeping")
+			time.Sleep(duration)
 		}
 
 	}(t)

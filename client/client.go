@@ -107,7 +107,7 @@ func CollectContainer(info HostInfo) {
 			go func(i Container, info HostInfo) {
 				client := &http.Client{}
 				url := "http://" + info.Hostip + ":2375/containers/" + i.ID + "/stats?stream=false"
-				glog.V(1).Info("CollectContainer url is %s", url)
+				glog.V(1).Info("CollectContainer url is ", url)
 				req, err := http.NewRequest("GET", url, nil)
 				if err != nil {
 					// handle error

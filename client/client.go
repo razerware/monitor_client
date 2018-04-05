@@ -15,12 +15,12 @@ import (
 
 var dbUrl = "http://10.109.252.172:8086"
 var db = "lzy"
-var db_user="admin"
-var db_user_password="admin"
+var db_user = "admin"
+var db_user_password = "admin"
 
 type HostInfo struct {
-	Hostid int
-	Hostip string
+	Hostid  int
+	Hostip  string
 	SwarmID string
 }
 type containerMonitorStats struct {
@@ -107,7 +107,7 @@ func CollectContainer(info HostInfo) {
 			go func(i Container, info HostInfo) {
 				client := &http.Client{}
 				url := "http://" + info.Hostip + ":2375/containers/" + i.ID + "/stats?stream=false"
-				glog.V(1).Info("CollectContainer url is %s",url)
+				glog.V(1).Info("CollectContainer url is %s", url)
 				req, err := http.NewRequest("GET", url, nil)
 				if err != nil {
 					// handle error
@@ -121,13 +121,12 @@ func CollectContainer(info HostInfo) {
 				}
 				cs := ContainerStats{}
 				json.Unmarshal(body, &cs)
-				json_cs,ok:=json.Marshal(cs)
-				if ok!=nil{
+				json_cs, ok := json.Marshal(cs)
+				if ok != nil {
 					glog.Error(ok)
-				}else{
+				} else {
 					glog.V(1).Info(string(json_cs))
 				}
-
 
 				cpu_percent := float64((cs.CPUStats.CPUUsage.TotalUsage -
 					cs.PrecpuStats.CPUUsage.TotalUsage)) /
@@ -138,10 +137,10 @@ func CollectContainer(info HostInfo) {
 				ms := containerMonitorStats{info, cpu_percent, mem_percent, i.Names[0],
 					service_id, service_name}
 				sendContainerInfo("container", ms)
-				json_ms,ok:=json.Marshal(ms)
-				if ok!=nil{
+				json_ms, ok := json.Marshal(ms)
+				if ok != nil {
 					glog.Error(ok)
-				}else{
+				} else {
 					glog.V(1).Info(string(json_ms))
 				}
 

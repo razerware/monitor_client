@@ -35,7 +35,7 @@ type vmMonitorStats struct {
 	HostInfo
 	CpuPercent float64
 	MemPercent float64
-	swarmId    int
+	swarmId    string
 }
 
 type ContainerStats struct {
@@ -76,7 +76,7 @@ func CollectVm(info HostInfo) {
 	c, _ := cpu.Percent(0, false)
 	// almost every return value is a struct
 	glog.Info("Total: %v, Free:%v, UsedPercent:%f%%\n", v.Total/1024/1024/1024, v.Free, v.UsedPercent)
-	result := vmMonitorStats{info, c[0], v.UsedPercent, 1}
+	result := vmMonitorStats{info, c[0], v.UsedPercent, info.SwarmID}
 	// convert to JSON. String() is also implemented
 	sendVmInfo("vm", result)
 }
@@ -186,7 +186,7 @@ func sendContainerInfo(field string, stat containerMonitorStats) {
 func sendVmInfo(field string, stat vmMonitorStats) {
 	glog.V(1).Info("sendVmInfo...")
 	url := dbUrl + "/write?db=" + db
-	tags := "hostid=" + strconv.Itoa(stat.Hostid) + ",swarmid=" + strconv.Itoa(stat.swarmId)
+	tags := "hostid=" + strconv.Itoa(stat.Hostid) + ",swarmid=" + stat.swarmId
 	stat_string := field + "," + tags + " cpu=" + strconv.FormatFloat(stat.CpuPercent, 'f', 2, 64) +
 		",mem=" + strconv.FormatFloat(stat.MemPercent, 'f', 2, 64)
 	stat_byte := []byte(stat_string)

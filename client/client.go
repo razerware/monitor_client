@@ -142,7 +142,7 @@ func CollectContainer(info HostInfo) {
 				if ok != nil {
 					glog.Error(ok)
 				} else {
-					glog.V(1).Info(string(json_ms))
+					glog.V(1).Info("Container stat: ",string(json_ms))
 				}
 
 			}(i, info)

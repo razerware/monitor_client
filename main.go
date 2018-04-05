@@ -35,7 +35,6 @@ func main() {
 		case <-t:
 			glog.Info("Collecting data...")
 			client.CollectData(info)
-			glog.Info("Time wait for sleeping")
 		}
 	}
 }

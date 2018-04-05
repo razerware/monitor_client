@@ -75,7 +75,7 @@ func CollectVm(info HostInfo) {
 	v, _ := mem.VirtualMemory()
 	c, _ := cpu.Percent(0, false)
 	// almost every return value is a struct
-	glog.Info("Total: %v, Free:%v, UsedPercent:%f%%\n", v.Total/1024/1024/1024, v.Free, v.UsedPercent)
+	glog.Info(fmt.Sprintf("Total: %v, Free:%v, UsedPercent:%f%%\n", v.Total/1024/1024/1024, v.Free, v.UsedPercent))
 	result := vmMonitorStats{info, c[0], v.UsedPercent, info.SwarmID}
 	// convert to JSON. String() is also implemented
 	sendVmInfo("vm", result)
@@ -86,6 +86,7 @@ func getContainers(info HostInfo) []Container {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		// handle error
+		glog.Error(err)
 	}
 	resp, err := client.Do(req)
 	defer resp.Body.Close()

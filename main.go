@@ -3,10 +3,9 @@ package main
 import (
 	"os"
 	"os/signal"
-	"client"
-	"time"
 	"flag"
-	"github.com/golang/glog"
+	"time"
+	"github.com/razerware/monitor_client/client"
 )
 
 func main() {

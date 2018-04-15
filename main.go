@@ -33,7 +33,7 @@ func main() {
 	for {
 		select {
 		case <-c:
-			glog.Fatal("ggg")
+			glog.Exit("program exit")
 			os.Exit(1)
 		case <-t:
 			glog.Info("Collecting data...")

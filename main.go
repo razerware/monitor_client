@@ -6,6 +6,7 @@ import (
 	"flag"
 	"time"
 	"github.com/razerware/monitor_client/client"
+	"github.com/golang/glog"
 )
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 	go func(t chan int) {
 		for {
 			t <- 1
-			duration := 10 * time.Second
+			duration := 30 * time.Second
 			time.Sleep(duration)
 		}
 

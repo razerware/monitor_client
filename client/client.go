@@ -5,14 +5,13 @@ import (
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 	"strconv"
-	"net/http"
-	"bytes"
-	"io/ioutil"
 	"encoding/json"
 	"github.com/golang/glog"
+	"gopkg.in/go-playground/pool.v3"
+	"time"
 )
 
-var dbUrl = "http://10.109.252.172:8086"
+var dbUrl = "http://10.109.252.172:8087"
 var db = "lzy"
 var db_user = "admin"
 var db_user_password = "admin"
@@ -68,133 +67,162 @@ type Container struct {
 func CollectData(info HostInfo) {
 	CollectVm(info)
 	CollectContainer(info)
+	glog.Info("wait 30s")
 }
 
 func CollectVm(info HostInfo) {
+	glog.Info("Collect data for ",info.Hostip)
 	v, _ := mem.VirtualMemory()
 	c, _ := cpu.Percent(0, false)
 	// almost every return value is a struct
-	glog.Info(fmt.Sprintf("Total: %v, Free:%v, UsedPercent:%f%%\n", v.Total/1024/1024/1024, v.Free, v.UsedPercent))
+	glog.Info(fmt.Sprintf("VM Data: Total: %v, Free:%v, UsedPercent:%f%%\n", v.Total/1024/1024/1024, v.Free, v.UsedPercent))
 	result := vmMonitorStats{info, c[0], v.UsedPercent, info.SwarmID}
 	// convert to JSON. String() is also implemented
 	sendVmInfo("vm", result)
+	glog.Info("CollectVm successed")
 }
 func getContainers(info HostInfo) []Container {
-	client := &http.Client{}
 	url := "http://" + info.Hostip + ":2375/containers/json"
-	req, err := http.NewRequest("GET", url, nil)
+	code, body, err := MyGet(url, nil)
 	if err != nil {
-		// handle error
-		glog.Error(err)
-	}
-	resp, err := client.Do(req)
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		// handle error
-		glog.Error("error occur when GET containers")
+		//	// handle error
+		glog.Error("error occur when GET containers,code is", code)
 	}
 	c := []Container{}
 	json.Unmarshal(body, &c)
 	return c
 }
+
+
 func CollectContainer(info HostInfo) {
 	c := getContainers(info)
-	for _, i := range c {
-		if i.Labels.ComDockerSwarmServiceID == "" {
-			continue
-		} else {
-			go func(i Container, info HostInfo) {
-				client := &http.Client{}
-				url := "http://" + info.Hostip + ":2375/containers/" + i.ID + "/stats?stream=false"
-				glog.V(1).Info("CollectContainer url is ", url)
-				req, err := http.NewRequest("GET", url, nil)
-				if err != nil {
-					// handle error
-				}
-				resp, err := client.Do(req)
-				defer resp.Body.Close()
-				body, err := ioutil.ReadAll(resp.Body)
-				if err != nil {
-					// handle error
-					glog.Error(err)
-				}
-				cs := ContainerStats{}
-				json.Unmarshal(body, &cs)
-				json_cs, ok := json.Marshal(cs)
-				if ok != nil {
-					glog.Error(ok)
-				} else {
-					glog.V(1).Info("Container stat: ", string(json_cs))
-				}
+	p := pool.NewLimited(100)
+	defer p.Close()
 
-				cpu_percent := float64((cs.CPUStats.CPUUsage.TotalUsage -
-					cs.PrecpuStats.CPUUsage.TotalUsage)) /
-					float64((cs.CPUStats.SystemCPUUsage - cs.PrecpuStats.SystemCPUUsage)) * 100
-				mem_percent := float64(cs.MemoryStats.Usage) / float64(cs.MemoryStats.Limit) * 100
-				service_id := i.Labels.ComDockerSwarmServiceID
-				service_name := i.Labels.ComDockerSwarmServiceName
-				ms := containerMonitorStats{info, cpu_percent, mem_percent, i.Names[0],
-					service_id, service_name}
-				sendContainerInfo("container", ms)
-				json_ms, ok := json.Marshal(ms)
-				if ok != nil {
-					glog.Error(ok)
-				} else {
-					glog.V(1).Info("Monitor stat: ", string(json_ms))
-				}
-
-			}(i, info)
+	batch := p.Batch()
+	go func() {
+		for _, i := range c {
+			if i.Labels.ComDockerSwarmServiceID == "" {
+				continue
+			} else {
+				batch.Queue(countAndSend(i, info))
+			}
 
 		}
-
-	}
-	return
+		// DO NOT FORGET THIS OR GOROUTINES WILL DEADLOCK
+		// if calling Cancel() it calles QueueComplete() internally
+		batch.QueueComplete()
+	}()
+	batch.WaitAll()
+	glog.Info("CollectContainer successed")
 }
 
+func countAndSend(i Container, info HostInfo) pool.WorkFunc{
+	return func(wu pool.WorkUnit) (interface{}, error) {
+
+		//// simulate waiting for something, like TCP connection to be established
+		//// or connection from pool grabbed
+		//time.Sleep(time.Second * 1)
+		glog.Info("Collect data for ",i.Names)
+		url := "http://" + info.Hostip + ":2375/containers/" + i.ID + "/stats?stream=false"
+		glog.V(1).Info("CollectContainer url is ", url)
+		code, body, err := MyGet(url, nil)
+
+		if err != nil {
+			//	// handle error
+			glog.Error("error occur when GET containers,code is", code)
+		}
+		cs := ContainerStats{}
+		json.Unmarshal(body, &cs)
+		json_cs, ok := json.Marshal(cs)
+		if ok != nil {
+			glog.Error(ok)
+		} else {
+			glog.V(1).Info("Container stat: ", string(json_cs))
+		}
+
+		cpu_percent := float64((cs.CPUStats.CPUUsage.TotalUsage -
+			cs.PrecpuStats.CPUUsage.TotalUsage)) /
+			float64((cs.CPUStats.SystemCPUUsage - cs.PrecpuStats.SystemCPUUsage)) * 100
+		mem_percent := float64(cs.MemoryStats.Usage) / float64(cs.MemoryStats.Limit) * 100
+		service_id := i.Labels.ComDockerSwarmServiceID
+		service_name := i.Labels.ComDockerSwarmServiceName
+		ms := containerMonitorStats{info, cpu_percent, mem_percent, i.Names[0],
+			service_id, service_name}
+		sendContainerInfo("container", ms)
+		json_ms, ok := json.Marshal(ms)
+		if ok != nil {
+			glog.Error(ok)
+		} else {
+			glog.V(1).Info("Monitor stat: ", string(json_ms))
+		}
+		if wu.IsCancelled() {
+			// return values not used
+			glog.Info("cancelled")
+			return nil, nil
+		}
+		glog.V(1).Info("not cancelled")
+		// ready for processing...
+
+		return true, nil // everything ok, send nil, error if not
+	}
+}
 func sendContainerInfo(field string, stat containerMonitorStats) {
 	glog.V(1).Info("sendContainerInfo...")
-	url := dbUrl + "/write?db=" + db + "&u=" + db_user + "&p=" + db_user_password
-	tags := "hostid=" + strconv.Itoa(stat.Hostid) + ",serviceid=" + stat.serviceId + ",servicename=" +
-		stat.serviceName + ",name=" + stat.Name
-	stat_string := field + "," + tags + " cpu=" + strconv.FormatFloat(stat.CpuPercent, 'f', 2, 64) +
-		",mem=" + strconv.FormatFloat(stat.MemPercent, 'f', 2, 64)
+	url := fmt.Sprintf("%s/write?db=%s&u=%s&p=%s", dbUrl, db, db_user, db_user_password)
+	//url := dbUrl + "/write?db=" + db + "&u=" + db_user + "&p=" + db_user_password
+	tags := fmt.Sprintf("hostid=%s,serviceid=%s,servicename=%s",
+		strconv.Itoa(stat.Hostid), stat.serviceName, stat.Name)
+	stat_string := fmt.Sprintf("%s,%s cpu=%s,mem=%s", field, tags,
+		strconv.FormatFloat(stat.CpuPercent, 'f', 2, 64),
+		strconv.FormatFloat(stat.MemPercent, 'f', 2, 64))
 	stat_byte := []byte(stat_string)
 	glog.V(1).Info("Container info is:", stat_string)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(stat_byte))
-	if err != nil {
+	code, body, err := MyPost(url, stat_byte)
+
+	if err != nil || code>204{
 		// handle error
-		glog.Error(err)
-	}
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		// handle error
-		glog.Error(err)
+		glog.Error(err, "Container info send fail,",string(body),"code is ", code)
 	} else {
-		glog.Info("Container info send successed ", resp.StatusCode)
+		glog.V(1).Info("Container info send successed ", code)
 	}
 
 }
 func sendVmInfo(field string, stat vmMonitorStats) {
 	glog.V(1).Info("sendVmInfo...")
-	url := dbUrl + "/write?db=" + db
-	tags := "hostid=" + strconv.Itoa(stat.Hostid) + ",swarmid=" + stat.swarmId
-	stat_string := field + "," + tags + " cpu=" + strconv.FormatFloat(stat.CpuPercent, 'f', 2, 64) +
-		",mem=" + strconv.FormatFloat(stat.MemPercent, 'f', 2, 64)
+	url := fmt.Sprintf("%s/write?db=%s&u=%s&p=%s", dbUrl, db, db_user, db_user_password)
+	tags := fmt.Sprintf("hostid=%s,swarmid=%s", strconv.Itoa(stat.Hostid), stat.swarmId)
+	//tags := "hostid=" + strconv.Itoa(stat.Hostid) + ",swarmid=" + stat.swarmId
+	stat_string := fmt.Sprintf("%s,%s cpu=%s,mem=%s", field, tags,
+		strconv.FormatFloat(stat.CpuPercent, 'f', 2, 64),
+		strconv.FormatFloat(stat.MemPercent, 'f', 2, 64))
 	stat_byte := []byte(stat_string)
 	glog.V(1).Info("VM info is:", stat_string)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(stat_byte))
-	if err != nil {
+	code, body, err := MyPost(url, stat_byte)
+
+	if err != nil ||code>204{
 		// handle error
-		glog.Error(err)
-	}
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		// handle error
-		glog.Error(err)
+		glog.Error(err, "Vm info send failed ",string(body),"code is ", code)
 	} else {
-		glog.Info("Vm info send successed ", resp.StatusCode)
+		glog.V(1).Info("Vm info send successed ", code)
+	}
+}
+
+func SendEmail(email string) pool.WorkFunc {
+	return func(wu pool.WorkUnit) (interface{}, error) {
+
+		// simulate waiting for something, like TCP connection to be established
+		// or connection from pool grabbed
+		time.Sleep(time.Second * 1)
+
+		if wu.IsCancelled() {
+			// return values not used
+			return nil, nil
+		}
+
+		// ready for processing...
+		fmt.Println("gggg")
+
+		return true, nil // everything ok, send nil, error if not
 	}
 }

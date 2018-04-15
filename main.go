@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 	"os/signal"
-	"rpc_client/client"
+	"client"
 	"time"
 	"flag"
 	"github.com/golang/glog"

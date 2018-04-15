@@ -22,7 +22,7 @@ func GetInternal() (int, string, string) {
 					v1, _ := record[0]["inner_id"].(int)
 					v2, _ := record[0]["ip"].(string)
 					v3, _ := record[0]["swarm_id"].(string)
-					glog.Info(v1, v2, v3)
+					glog.Info("Hostid is :",v1,"IP is: " ,v2, "Swarm_id is:",v3)
 					return v1, v2, v3
 				}
 			}

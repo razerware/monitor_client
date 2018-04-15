@@ -37,7 +37,7 @@ func main() {
 			os.Exit(1)
 		case <-t:
 			glog.Info("Collecting data...")
-			//client.CollectData(info)
+			client.CollectData(info)
 		}
 	}
 }

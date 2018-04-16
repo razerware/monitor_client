@@ -16,7 +16,7 @@ func GetInternal() (int, string, string) {
 		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
 				//ipnet.IP.String() 10.109.252.172
-				sql := fmt.Sprintf("SELECT * FROM `vm_info` where `ip`='%s'","10.109.252.172")
+				sql := fmt.Sprintf("SELECT * FROM `vm_info` where `ip`='%s'",ipnet.IP.String())
 				record := MysqlQuery(sql)
 				if len(record) > 0 {
 					v1, _ := record[0]["inner_id"].(int)

@@ -48,7 +48,7 @@ func timeCount(t chan int){
 func handleSignal(){
 	signalChan := make(chan os.Signal, 1)
 	//os.Interrupt, os.Kill,
-	signal.Notify(signalChan, syscall.SIGTERM)
+	signal.Notify(signalChan, os.Interrupt, os.Kill,syscall.SIGTERM)
 	s:=<-signalChan
 	glog.Infof("Received SIGTERM, shutting down ",s)
 

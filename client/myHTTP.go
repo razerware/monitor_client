@@ -11,6 +11,7 @@ func MyPost(url string, send_bytes []byte) (int, []byte, error) {
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(send_bytes))
 	if err != nil {
 		// handle error
+		glog.Error(err)
 	}
 	client := &http.Client{}
 	resp, err := client.Do(req)

@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func GetInternal() (int, string, string) {
+func GetInternal() (string,int, string, string) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		glog.Fatal("Oops:" + err.Error())
@@ -19,16 +19,17 @@ func GetInternal() (int, string, string) {
 				sql := fmt.Sprintf("SELECT * FROM `vm_info` where `ip`='%s'",ipnet.IP.String())
 				record := MysqlQuery(sql)
 				if len(record) > 0 {
-					v1, _ := record[0]["inner_id"].(int)
-					v2, _ := record[0]["ip"].(string)
-					v3, _ := record[0]["swarm_id"].(string)
-					glog.Info("Hostid is :", v1, " IP is: ", v2, " Swarm_id is:", v3)
-					return v1, v2, v3
+					v1, _ := record[0]["node_id"].(string)
+					v2, _ := record[0]["inner_id"].(int)
+					v3, _ := record[0]["ip"].(string)
+					v4, _ := record[0]["swarm_id"].(string)
+					glog.Info("NodeID is :",v1," innerHostID is :", v2, " IP is: ", v3, " Swarm_id is:", v4)
+					return v1, v2, v3,v4
 				}
 			}
 		}
 	}
 	glog.Fatal("ip get error")
 	os.Exit(0)
-	return 0, "", ""
+	return "",0, "", ""
 }

@@ -17,23 +17,24 @@ var db_user = "admin"
 var db_user_password = "admin"
 
 type HostInfo struct {
-	Hostid  int
-	Hostip  string
+	NodeID  string
+	HostID  int
+	HostIP  string
 	SwarmID string
 }
+
 type containerMonitorStats struct {
 	HostInfo
 	CpuPercent  float64
 	MemPercent  float64
 	Name        string
-	serviceId   string
+	serviceID   string
 	serviceName string
 }
 type vmMonitorStats struct {
 	HostInfo
 	CpuPercent float64
 	MemPercent float64
-	swarmId    string
 }
 
 type ContainerStats struct {
@@ -71,18 +72,18 @@ func CollectData(info HostInfo) {
 }
 
 func CollectVm(info HostInfo) {
-	glog.Info("Collect data for ",info.Hostip)
+	glog.Info("Collect data for ",info.HostIP)
 	v, _ := mem.VirtualMemory()
 	c, _ := cpu.Percent(0, false)
 	// almost every return value is a struct
 	glog.Info(fmt.Sprintf("VM Data: Total: %v, Free:%v, UsedPercent:%f%%\n", v.Total/1024/1024/1024, v.Free, v.UsedPercent))
-	result := vmMonitorStats{info, c[0], v.UsedPercent, info.SwarmID}
+	result := vmMonitorStats{info, c[0], v.UsedPercent}
 	// convert to JSON. String() is also implemented
 	sendVmInfo("vm", result)
 	glog.Info("CollectVm successed")
 }
 func getContainers(info HostInfo) []Container {
-	url := "http://" + info.Hostip + ":2375/containers/json"
+	url := "http://" + info.HostIP + ":2375/containers/json"
 	code, body, err := MyGet(url, nil)
 	if err != nil {
 		//	// handle error
@@ -124,7 +125,7 @@ func countAndSend(i Container, info HostInfo) pool.WorkFunc{
 		//// or connection from pool grabbed
 		//time.Sleep(time.Second * 1)
 		glog.Info("Collect data for ",i.Names)
-		url := "http://" + info.Hostip + ":2375/containers/" + i.ID + "/stats?stream=false"
+		url := "http://" + info.HostIP + ":2375/containers/" + i.ID + "/stats?stream=false"
 		glog.V(1).Info("CollectContainer url is ", url)
 		code, body, err := MyGet(url, nil)
 
@@ -144,11 +145,16 @@ func countAndSend(i Container, info HostInfo) pool.WorkFunc{
 		cpu_percent := float64((cs.CPUStats.CPUUsage.TotalUsage -
 			cs.PrecpuStats.CPUUsage.TotalUsage)) /
 			float64((cs.CPUStats.SystemCPUUsage - cs.PrecpuStats.SystemCPUUsage)) * 100
+
 		mem_percent := float64(cs.MemoryStats.Usage) / float64(cs.MemoryStats.Limit) * 100
+
 		service_id := i.Labels.ComDockerSwarmServiceID
+
 		service_name := i.Labels.ComDockerSwarmServiceName
-		ms := containerMonitorStats{info, cpu_percent, mem_percent, i.Names[0],
-			service_id, service_name}
+
+		ms := containerMonitorStats{info, cpu_percent,
+		mem_percent, i.Names[0], service_id, service_name}
+
 		sendContainerInfo("container", ms)
 		json_ms, ok := json.Marshal(ms)
 		if ok != nil {
@@ -156,6 +162,7 @@ func countAndSend(i Container, info HostInfo) pool.WorkFunc{
 		} else {
 			glog.V(1).Info("Monitor stat: ", string(json_ms))
 		}
+
 		if wu.IsCancelled() {
 			// return values not used
 			glog.Info("cancelled")
@@ -170,16 +177,19 @@ func countAndSend(i Container, info HostInfo) pool.WorkFunc{
 func sendContainerInfo(field string, stat containerMonitorStats) {
 	glog.V(1).Info("sendContainerInfo...")
 	url := fmt.Sprintf("%s/write?db=%s&u=%s&p=%s", dbUrl, db, db_user, db_user_password)
+
 	//url := dbUrl + "/write?db=" + db + "&u=" + db_user + "&p=" + db_user_password
-	tags := fmt.Sprintf("hostid=%s,serviceid=%s,servicename=%s",
-		strconv.Itoa(stat.Hostid), stat.serviceName, stat.Name)
+	tags := fmt.Sprintf("node_id=%s,host_id=%s,service_id=%s,service_name=%s",
+		stat.NodeID,strconv.Itoa(stat.HostID), stat.serviceName, stat.Name)
+
 	stat_string := fmt.Sprintf("%s,%s cpu=%s,mem=%s", field, tags,
 		strconv.FormatFloat(stat.CpuPercent, 'f', 2, 64),
 		strconv.FormatFloat(stat.MemPercent, 'f', 2, 64))
+
 	stat_byte := []byte(stat_string)
 	glog.V(1).Info("Container info is:", stat_string)
-	code, body, err := MyPost(url, stat_byte)
 
+	code, body, err := MyPost(url, stat_byte)
 	if err != nil || code>204{
 		// handle error
 		glog.Error(err, "Container info send fail,",string(body),"code is ", code)
@@ -190,12 +200,17 @@ func sendContainerInfo(field string, stat containerMonitorStats) {
 }
 func sendVmInfo(field string, stat vmMonitorStats) {
 	glog.V(1).Info("sendVmInfo...")
+
 	url := fmt.Sprintf("%s/write?db=%s&u=%s&p=%s", dbUrl, db, db_user, db_user_password)
-	tags := fmt.Sprintf("hostid=%s,swarmid=%s", strconv.Itoa(stat.Hostid), stat.swarmId)
+
+	tags := fmt.Sprintf("node_id=%s,host_id=%s,swarm_id=%s",
+		stat.NodeID,strconv.Itoa(stat.HostID), stat.SwarmID)
 	//tags := "hostid=" + strconv.Itoa(stat.Hostid) + ",swarmid=" + stat.swarmId
+
 	stat_string := fmt.Sprintf("%s,%s cpu=%s,mem=%s", field, tags,
 		strconv.FormatFloat(stat.CpuPercent, 'f', 2, 64),
 		strconv.FormatFloat(stat.MemPercent, 'f', 2, 64))
+
 	stat_byte := []byte(stat_string)
 	glog.V(1).Info("VM info is:", stat_string)
 	code, body, err := MyPost(url, stat_byte)

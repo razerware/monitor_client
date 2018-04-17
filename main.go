@@ -13,14 +13,12 @@ import (
 func main() {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, os.Kill)
-	//hostid := flag.Int("hostid", 0, "number")
-	//hostip := flag.String("hostip", "", "string")
-	//swarmid := flag.String("swarmid", "", "string")
+
 	flag.Parse()
 	glog.Flush()
 	client.MysqlConnect()
-	hostid,hostip,swarmid:=client.GetInternal()
-	info := client.HostInfo{hostid, hostip, swarmid}
+	nodeID,hostID,hostIP,swarmID:=client.GetInternal()
+	info := client.HostInfo{nodeID,hostID, hostIP, swarmID}
 	glog.Info("Data collecting start...", info)
 	t := make(chan int)
 	go timeCount(t)

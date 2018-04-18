@@ -180,7 +180,7 @@ func sendContainerInfo(field string, stat containerMonitorStats) {
 
 	//url := dbUrl + "/write?db=" + db + "&u=" + db_user + "&p=" + db_user_password
 	tags := fmt.Sprintf("node_id=%s,host_id=%s,service_id=%s,service_name=%s",
-		stat.NodeID,strconv.Itoa(stat.HostID), stat.serviceName, stat.Name)
+		stat.NodeID,strconv.Itoa(stat.HostID), stat.serviceID, stat.serviceName)
 
 	stat_string := fmt.Sprintf("%s,%s cpu=%s,mem=%s", field, tags,
 		strconv.FormatFloat(stat.CpuPercent, 'f', 2, 64),

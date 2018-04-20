@@ -18,7 +18,6 @@ var db_user_password = "admin"
 
 type HostInfo struct {
 	NodeID  string
-	HostID  int
 	HostIP  string
 	SwarmID string
 }
@@ -179,8 +178,8 @@ func sendContainerInfo(field string, stat containerMonitorStats) {
 	url := fmt.Sprintf("%s/write?db=%s&u=%s&p=%s", dbUrl, db, db_user, db_user_password)
 
 	//url := dbUrl + "/write?db=" + db + "&u=" + db_user + "&p=" + db_user_password
-	tags := fmt.Sprintf("node_id=%s,host_id=%s,service_id=%s,service_name=%s",
-		stat.NodeID,strconv.Itoa(stat.HostID), stat.serviceID, stat.serviceName)
+	tags := fmt.Sprintf("node_id=%s,service_id=%s,service_name=%s",
+		stat.NodeID, stat.serviceID, stat.serviceName)
 
 	stat_string := fmt.Sprintf("%s,%s cpu=%s,mem=%s", field, tags,
 		strconv.FormatFloat(stat.CpuPercent, 'f', 2, 64),
@@ -203,8 +202,8 @@ func sendVmInfo(field string, stat vmMonitorStats) {
 
 	url := fmt.Sprintf("%s/write?db=%s&u=%s&p=%s", dbUrl, db, db_user, db_user_password)
 
-	tags := fmt.Sprintf("node_id=%s,host_id=%s,swarm_id=%s",
-		stat.NodeID,strconv.Itoa(stat.HostID), stat.SwarmID)
+	tags := fmt.Sprintf("node_id=%s,swarm_id=%s",
+		stat.NodeID, stat.SwarmID)
 	//tags := "hostid=" + strconv.Itoa(stat.Hostid) + ",swarmid=" + stat.swarmId
 
 	stat_string := fmt.Sprintf("%s,%s cpu=%s,mem=%s", field, tags,

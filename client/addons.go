@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func GetInternal() (string,int, string, string) {
+func GetInternal() (string, string, string) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		glog.Fatal("Oops:" + err.Error())
@@ -20,11 +20,10 @@ func GetInternal() (string,int, string, string) {
 				record := MysqlQuery(sql)
 				if len(record) > 0 {
 					v1, _ := record[0]["node_id"].(string)
-					v2, _ := record[0]["inner_id"].(int)
-					v3, _ := record[0]["ip"].(string)
-					v4, _ := record[0]["swarm_id"].(string)
-					glog.Info("NodeID is :",v1," innerHostID is :", v2, " IP is: ", v3, " Swarm_id is:", v4)
-					return v1, v2, v3,v4
+					v2, _ := record[0]["ip"].(string)
+					v3, _ := record[0]["swarm_id"].(string)
+					glog.Info("NodeID is :",v1," IP is: ", v2, " Swarm_id is:", v3)
+					return v1, v2,v3
 				}
 			}
 		}

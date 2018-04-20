@@ -30,5 +30,5 @@ func GetInternal() (string, string, string) {
 	}
 	glog.Fatal("ip get error")
 	os.Exit(0)
-	return "",0, "", ""
+	return "","", ""
 }

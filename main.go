@@ -17,8 +17,8 @@ func main() {
 	flag.Parse()
 	glog.Flush()
 	client.MysqlConnect()
-	nodeID,hostIP,swarmID:=client.GetInternal()
-	info := client.HostInfo{nodeID, hostIP, swarmID}
+	nodeID,hostIP,swarmID,role:=client.GetInternal()
+	info := client.HostInfo{nodeID, hostIP, swarmID,role}
 	glog.Info("Data collecting start...", info)
 	t := make(chan int)
 	go timeCount(t)

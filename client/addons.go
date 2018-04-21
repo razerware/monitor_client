@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func GetInternal() (string, string, string) {
+func GetInternal() (string, string, string,string) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		glog.Fatal("Oops:" + err.Error())
@@ -22,13 +22,14 @@ func GetInternal() (string, string, string) {
 					v1, _ := record[0]["node_id"].(string)
 					v2, _ := record[0]["ip"].(string)
 					v3, _ := record[0]["swarm_id"].(string)
-					glog.Info("NodeID is :",v1," IP is: ", v2, " Swarm_id is:", v3)
-					return v1, v2,v3
+					v4,_ :=record[0]["role"].(string)
+					glog.Info("NodeID is :",v1," IP is: ", v2, " Swarm_id is:", v3," Role is ",v4)
+					return v1, v2,v3,v4
 				}
 			}
 		}
 	}
 	glog.Fatal("ip get error")
 	os.Exit(0)
-	return "","", ""
+	return "","", "",""
 }

@@ -20,6 +20,7 @@ type HostInfo struct {
 	NodeID  string
 	HostIP  string
 	SwarmID string
+	Role string
 }
 
 type containerMonitorStats struct {
@@ -202,8 +203,8 @@ func sendVmInfo(field string, stat vmMonitorStats) {
 
 	url := fmt.Sprintf("%s/write?db=%s&u=%s&p=%s", dbUrl, db, db_user, db_user_password)
 
-	tags := fmt.Sprintf("node_id=%s,swarm_id=%s",
-		stat.NodeID, stat.SwarmID)
+	tags := fmt.Sprintf("node_id=%s,swarm_id=%s,role=%s",
+		stat.NodeID, stat.SwarmID,stat.Role)
 	//tags := "hostid=" + strconv.Itoa(stat.Hostid) + ",swarmid=" + stat.swarmId
 
 	stat_string := fmt.Sprintf("%s,%s cpu=%s,mem=%s", field, tags,
